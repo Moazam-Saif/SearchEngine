@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <title>AbuGoogle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        h1 {
+            font-family: "Outfit", serif;
+            font-optical-sizing: auto;
+            font-weight:800;
+            font-style: normal;
+            text-align: center;
+            color: #e53935;
+            margin-top: 50px;
+            font-size: 3rem;
+        }
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            max-width: 600px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 30px;
+            background-color: #f5f5f5;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 30px 0 0 30px;
+            outline: none;
+            color: #333;
+            background-color: #fff;
+        }
+        button {
+            padding: 10px 30px;
+            font-size: 1rem;
+            color: white;
+            background-color: #e53935;
+            border: none;
+            border-radius: 0 30px 30px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #c62828;
+        }
+        #page-info {
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        #results {
+            margin-top: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .result {
+            display: block;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #e53935;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .result:hover {
+            background-color: #ffe6e6;
+            transform: scale(1.02);
+        }
+        .result h3 {
+            color: #e53935;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .result p {
+            margin: 10px 0;
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .result p.source {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #888;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        a:hover {
+            text-decoration: none;
+        }
+        .no-results {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #888;
+        }
+        .error-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: red;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 10px 15px;
+            margin: 0 5px;
+            border-radius: 5px;
+            border-color: #e53935 !important;
+            color: white;
+            background-color: #e53935 !important;
+            font-size: 1rem;
+            transition: background-color 0.3s, transform 0.3s;
+            cursor: pointer;
+        }
+
+        .pagination a.active {
+            background-color: #c62828 !important;
+            border-color: #c62828 !important;
+        }
+
+        .pagination a:hover {
+            background-color: #d32f2f !important;
+            border-color: #d32f2f !important;
+            transform: scale(1.1);
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.5/pagination.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.5/pagination.css" />
+</head>
+<body>
+    <h1>AbuGoogle</h1>
+    <div class="search-container">
+        <form id="searchForm">
+            <input type="text" name="query" placeholder="Search..." required>
+            <button type="submit">Search</button>
+        </form>
+        <div id="page-info"></div>
+    </div>
+
+    <div id="results"></div>
+    <div id="pagination" class="pagination"></div>
+
+    <script>
+        document.getElementById("searchForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const query = e.target.query.value.trim();
+
+            if (!query) {
+                document.getElementById("results").innerHTML = "<p class='error-message'>Query cannot be empty!</p>";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({ query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const results = await response.json();
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = "";
+                const pageInfo = document.getElementById("page-info");
+
+                if (Array.isArray(results) && results.length > 0) {
+                    pageInfo.innerText = `Page 1 | Total Results: ${results.length}`;
+
+                    const paginatedResults = results.map(result => `
+                        <a href="${result.url || "#"}" class="result" target="_blank">
+                            <h3>${result.title || "Untitled"}</h3>
+                            <p class="content">${result.description}</p>
+                            <p class="source">${result.source_name || "Unknown"}</p>
+                        </a>
+                    `);
+
+                    $('#pagination').pagination({
+                        dataSource: paginatedResults,
+                        pageSize: 15,
+                        callback: function (data, pagination) {
+                            resultsDiv.innerHTML = data.join('');
+                            pageInfo.innerText = `Page ${pagination.pageNumber} | Total Results: ${results.length}`;
+                        }
+                    });
+                } else {
+                    pageInfo.innerText = "";
+                    resultsDiv.innerHTML = "<p class='no-results'>No results found.</p>";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("results").innerHTML = "<p class='error-message'>Hello world</p>";
+            }
+        });
+    </script>
+</body>
+</html>
